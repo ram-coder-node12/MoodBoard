@@ -41,12 +41,12 @@ export async function getAllInsights(userId) {
   const insightsRef = collection(db, 'insights');
   const q = query(
     insightsRef,
-    where('userId', '==', userId),
-    orderBy('weekStart', 'desc')
+    where('userId', '==', userId)
   );
   
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  return data.sort((a, b) => new Date(b.weekStart) - new Date(a.weekStart));
 }
 
 /**
