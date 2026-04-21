@@ -20,9 +20,15 @@ export async function createUserProfile(uid, data) {
     streak: 0,
     longestStreak: 0,
     totalEntries: 0,
+    copingJar: ['Drink a glass of water', 'Take 10 deep breaths', 'Take a quick walk outside'],
     reminderTime: null, // Scaffolding for reminders
     createdAt: serverTimestamp()
   }, { merge: true });
+}
+
+export async function updateCopingMechanisms(uid, jarArray) {
+  const userRef = doc(db, 'users', uid);
+  await setDoc(userRef, { copingJar: jarArray }, { merge: true });
 }
 
 export async function getUserProfile(uid) {

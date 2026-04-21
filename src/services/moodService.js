@@ -21,6 +21,7 @@ export async function createMood(userId, data) {
     date: data.date,
     level: data.level,
     emotions: data.emotions || [],
+    habits: data.habits || [],
     note: data.note || '',
     isPublic: false, // Scaffolding
     createdAt: serverTimestamp(),

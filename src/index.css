@@ -1,7 +1,33 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-900 dark:text-slate-50 transition-all duration-1000;
   }
+
+  input,
+  textarea,
+  select {
+    color: rgb(15 23 42);
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-text-fill-color: rgb(15 23 42);
+    -webkit-box-shadow: 0 0 0px 1000px white inset;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+}
+
+body[data-aura="low"] {
+  filter: saturate(0.85) hue-rotate(-15deg);
+}
+
+body[data-aura="high"] {
+  filter: saturate(1.1) hue-rotate(10deg);
 }

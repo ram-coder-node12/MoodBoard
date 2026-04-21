@@ -2,20 +2,24 @@ import React, { useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMoodState } from '../context/MoodContext';
+import { useUserProfile } from '../context/UserContext';
 import useStreak from '../hooks/useStreak';
 import useWeeklyMoods from '../hooks/useWeeklyMoods';
 import MoodCard from '../components/MoodCard';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { getWeeklySummary } from '../utils/moodInsights';
+import { formatTimeLabel } from '../utils/date';
+import { getReminderDescription, getSuggestedReminderTime } from '../utils/reminders';
 
 const StatCard = React.memo(({ title, value, subtitle }) => (
-  <div className="bg-white overflow-hidden shadow-sm rounded-xl border border-slate-100 p-6 flex flex-col justify-between">
+  <div className="bg-white dark:bg-slate-800 overflow-hidden shadow-sm rounded-xl border border-slate-100 dark:border-slate-700 p-6 flex flex-col justify-between transition-colors">
     <div>
-      <h2 className="text-sm font-medium text-slate-500 mb-2">{title}</h2>
-      <div className="text-3xl font-extrabold text-slate-900">{value}</div>
+      <h2 className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</h2>
+      <div className="text-3xl font-extrabold text-slate-900 dark:text-white">{value}</div>
     </div>
     {subtitle && (
-      <div className="mt-4 pt-4 border-t border-slate-100">
-         <div className="text-sm font-medium text-slate-500">{subtitle}</div>
+      <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+         <div className="text-sm font-medium text-slate-500 dark:text-slate-400">{subtitle}</div>
       </div>
     )}
   </div>
@@ -23,6 +27,7 @@ const StatCard = React.memo(({ title, value, subtitle }) => (
 
 export default function Dashboard() {
   const { currentUser } = useAuth();
+  const { profile } = useUserProfile();
   const { moods, getMoodForDate, loading } = useMoodState();
   const navigate = useNavigate();
 
@@ -38,6 +43,10 @@ export default function Dashboard() {
     const sum = valid.reduce((acc, m) => acc + m.level, 0);
     return (sum / valid.length).toFixed(1);
   }, [weeklyMoods]);
+
+  const weeklySummary = useMemo(() => getWeeklySummary(moods), [moods]);
+  const suggestedReminderTime = useMemo(() => getSuggestedReminderTime(moods), [moods]);
+  const reminderCopy = useMemo(() => getReminderDescription(profile, moods), [profile, moods]);
 
   const chartData = useMemo(() => {
     return weeklyMoods.map(m => {
@@ -91,13 +100,13 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fadeIn text-slate-900">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fadeIn text-slate-900 dark:text-white transition-colors">
       
       <div>
         <h1 className="text-3xl font-bold">
           Hello, {currentUser?.displayName?.split(' ')[0] || 'Friend'} 👋
         </h1>
-        <p className="mt-1 text-sm text-slate-500">Welcome to your emotional space.</p>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Welcome to your emotional space.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
@@ -141,6 +150,72 @@ export default function Dashboard() {
             subtitle={<>Week Avg: <span className="text-lg font-bold text-slate-900">{averageWeeklyScore}</span> <span className="text-xs">/ 5.0</span></>}
         />
 
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm p-6 transition-colors">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Weekly Summary</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">A quick read on how this week has felt so far.</p>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-sm font-semibold">
+              {weeklySummary.average ? `${weeklySummary.average}/5 avg` : 'No data yet'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
+            <div className="rounded-xl bg-slate-50 dark:bg-slate-700/50 p-4">
+              <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Entries</p>
+              <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{weeklySummary.entries}</p>
+            </div>
+            <div className="rounded-xl bg-slate-50 dark:bg-slate-700/50 p-4">
+              <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Top Emotion</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white capitalize">{weeklySummary.topEmotion || 'None yet'}</p>
+            </div>
+            <div className="rounded-xl bg-slate-50 dark:bg-slate-700/50 p-4">
+              <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Best Day</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{weeklySummary.bestEntry?.date || 'Not enough data'}</p>
+            </div>
+          </div>
+
+          <p className="mt-5 text-sm leading-6 text-slate-600 dark:text-slate-300">
+            {weeklySummary.summary}
+          </p>
+        </div>
+
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm p-6 transition-colors">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Smart Reminders</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Stay consistent with reminders tailored to your routine.</p>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 text-sm font-semibold">
+              Best time: {formatTimeLabel(suggestedReminderTime)}
+            </span>
+          </div>
+
+          <p className="mt-5 text-sm leading-6 text-slate-600 dark:text-slate-300">
+            {reminderCopy}
+          </p>
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/profile#reminders')}
+              className="px-4 py-2.5 rounded-lg bg-violet-600 text-white font-medium hover:bg-violet-700 transition-colors"
+            >
+              Configure reminders
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/journal')}
+              className="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              Review recent patterns
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
